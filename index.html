@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- [핵심 수정 1] 유튜브 재생을 위해 '나는 누구다'라고 정직하게 밝히는 태그 추가 -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>글로벌게임허브센터 입주사 안내</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Gowun Batang', serif; }
+        #modal-content, #event-modal-content { animation: slide-up 0.3s ease-out; }
+        @keyframes slide-up { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .content-section { display: none; }
+        .preserve-lines { white-space: pre-wrap; word-break: break-word; }
+        .aspect-video-custom { aspect-ratio: 16 / 9; } 
+    </style>
+</head>
+<body class="bg-pink-50 text-gray-800">
+
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-6 py-4">
+            <h1 id="header-title" class="text-3xl font-bold text-center text-pink-900"></h1>
+            <p id="header-subtitle" class="text-center text-pink-800 opacity-80 mt-2"></p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        <div id="loading-indicator" class="text-center py-16">
+            <p class="text-lg text-gray-500">데이터를 불러오는 중입니다...</p>
+        </div>
+        <div id="error-message" class="hidden text-center py-16 bg-red-100 text-red-700 rounded-lg">
+             <p class="text-lg font-bold">데이터를 불러오는 데 실패했습니다.</p>
+             <p class="mt-2">구글 시트 URL과 공유 설정을 다시 확인해 주세요.</p>
+        </div>
+        <section class="mb-12 bg-white p-8 rounded-lg shadow-lg content-section">
+            <h2 class="text-2xl font-bold text-center text-pink-900 mb-4">글로벌게임허브센터 소개</h2>
+            <p id="introduction-text" class="text-gray-700 leading-relaxed text-center max-w-3xl mx-auto preserve-lines"></p>
+        </section>
+        <section class="mb-12 content-section">
+            <h2 class="text-2xl font-bold text-center text-pink-900 mb-6">주요 행사 안내</h2>
+            <div id="event-list" class="grid md:grid-cols-2 gap-6"></div>
+        </section>
+        <section class="content-section">
+            <h2 class="text-2xl font-bold text-center text-pink-900 mb-6">입주사 목록</h2>
+            <div id="company-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+        </section>
+    </main>
+    
+    <!-- Modals -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center p-4 z-50">
+        <div id="modal-content" class="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative" onclick="event.stopPropagation()">
+            <button id="modal-close-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+            <div class="p-8 md:p-12">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center mb-6 border-b pb-6">
+                    <div class="w-24 h-24 rounded-full mr-0 sm:mr-6 mb-4 sm:mb-0 bg-white border flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        <!-- 구글 이미지는 referrer 숨김 유지 -->
+                        <img id="modal-logo" src="" alt="기업 로고" class="max-w-[80%] max-h-[80%] object-contain" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://placehold.co/100x100?text=No+Image';">
+                    </div>
+                    <div>
+                        <h2 id="modal-name" class="text-3xl font-bold text-gray-900"></h2>
+                        <p id="modal-description" class="text-lg text-pink-600 mt-1"></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-6">
+                    <div><strong class="w-24 inline-block">대표명</strong> <span id="modal-ceo"></span></div>
+                    <div><strong class="w-24 inline-block">이메일</strong> <span id="modal-email"></span></div>
+                    <div><strong class="w-24 inline-block">주력 장르</strong> <span id="modal-genre"></span></div>
+                    <div><strong class="w-24 inline-block">주력 플랫폼</strong> <span id="modal-platform"></span></div>
+                </div>
+                 <div class="mb-8">
+                    <h3 class="text-xl font-bold mb-2 text-gray-800">기업 소개</h3>
+                    <p id="modal-detailed-description" class="text-gray-600 leading-relaxed preserve-lines"></p>
+                </div>
+                <div class="bg-pink-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">대표 게임</h3>
+                    <p id="modal-main-game" class="text-2xl font-semibold text-pink-700 mb-2"></p>
+                    <p id="modal-game-description" class="text-gray-600 leading-relaxed preserve-lines"></p>
+                </div>
+                <div id="youtube-section" class="mt-8">
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">소개 영상</h3>
+                    <div class="aspect-video-custom">
+                         <iframe id="youtube-iframe" class="w-full h-full" 
+                                 referrerpolicy="strict-origin-when-cross-origin"
+                                 frameborder="0" 
+                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                 allowfullscreen>
+                         </iframe>
+                    </div>
+                </div>
+                <div id="game-image-section" class="mt-8">
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">게임 이미지</h3>
+                    <div id="modal-game-images" class="grid grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="event-modal-backdrop" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center p-4 z-50">
+        <div id="event-modal-content" class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" onclick="event.stopPropagation()">
+            <button id="event-modal-close-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+            <div class="p-6 md:p-8">
+                <img id="event-modal-poster" src="" alt="행사 포스터" class="w-full h-auto rounded-lg shadow-md mb-6" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://placehold.co/600x400?text=No+Image';">
+                <h2 id="event-modal-title" class="text-3xl font-bold text-gray-900 mb-4"></h2>
+                <p id="event-modal-description" class="text-gray-600 leading-relaxed preserve-lines"></p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-pink-900 text-white mt-8 py-4">
+        <div class="container mx-auto px-6 text-center">
+            <p id="footer-text" class="opacity-80"></p>
+        </div>
+    </footer>
+
+    <script>
+        const introductionSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSzp3Fm7roXu9KK-P88_s4Ki8KMq8cPvOn2LTx_d8fyAlHRflImemJGu2nsPc7VXfKqGimNA7IW4R0D/pub?gid=1613561003&single=true&output=csv';
+        const companiesSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSzp3Fm7roXu9KK-P88_s4Ki8KMq8cPvOn2LTx_d8fyAlHRflImemJGu2nsPc7VXfKqGimNA7IW4R0D/pub?gid=0&single=true&output=csv';
+        const eventsSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSzp3Fm7roXu9KK-P88_s4Ki8KMq8cPvOn2LTx_d8fyAlHRflImemJGu2nsPc7VXfKqGimNA7IW4R0D/pub?gid=1788825445&single=true&output=csv';
+
+        function convertToDirectLink(url) {
+            if (!url) return '';
+            const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+            if (idMatch && idMatch[1]) {
+                return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=s4000`;
+            }
+            return url;
+        }
+
+        function getFallbackImage(width = 200, height = 200) {
+            return `https://placehold.co/${width}x${height}?text=No+Image`;
+        }
+
+        function parseCSV(text) {
+            let lines = text.split(/\r\n|\n/);
+            let headers = lines.shift().split(',');
+            let result = [];
+            lines.forEach(line => {
+                if (!line) return;
+                let obj = {};
+                let current = '';
+                let inQuote = false;
+                let fieldIndex = 0;
+                for (let i = 0; i < line.length; i++) {
+                    let char = line[i];
+                    if (char === '"' && line[i+1] === '"') {
+                        current += '"'; i++;
+                    } else if (char === '"') {
+                        inQuote = !inQuote;
+                    } else if (char === ',' && !inQuote) {
+                        obj[headers[fieldIndex]] = current.trim();
+                        current = '';
+                        fieldIndex++;
+                    } else {
+                        current += char;
+                    }
+                }
+                obj[headers[fieldIndex]] = current.trim();
+                result.push(obj);
+            });
+            return result;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const [introResponse, eventsResponse, companiesResponse] = await Promise.all([
+                    fetch(introductionSheetURL), fetch(eventsSheetURL), fetch(companiesSheetURL)
+                ]);
+                if (!introResponse.ok || !eventsResponse.ok || !companiesResponse.ok) throw new Error('Network error');
+
+                const [introCSV, eventsCSV, companiesCSV] = await Promise.all([
+                    introResponse.text(), eventsResponse.text(), companiesResponse.text()
+                ]);
+
+                const introData = parseCSV(introCSV);
+                const eventsData = parseCSV(eventsCSV);
+                const companiesData = parseCSV(companiesCSV).map(c => ({
+                    ...c, 
+                    gameImages: c.gameImages ? c.gameImages.split(',').map(url => convertToDirectLink(url.trim())) : [] 
+                }));
+                
+                renderHeaderAndIntroduction(introData);
+                renderEvents(eventsData);
+                renderCompanies(companiesData);
+
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.querySelectorAll('.content-section').forEach(el => el.style.display = 'block');
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+            
+            document.getElementById('modal-close-btn').addEventListener('click', closeCompanyModal);
+            document.getElementById('modal-backdrop').addEventListener('click', closeCompanyModal);
+            document.getElementById('event-modal-close-btn').addEventListener('click', closeEventModal);
+            document.getElementById('event-modal-backdrop').addEventListener('click', closeEventModal);
+        });
+        
+        function renderHeaderAndIntroduction(data) {
+            if (data.length > 0 && data[0]) {
+                document.getElementById('header-title').textContent = data[0].title || '글로벌게임허브센터';
+                document.getElementById('header-subtitle').textContent = data[0].subtitle || '홈페이지 방문을 환영합니다.';
+                document.getElementById('footer-text').textContent = data[0].footerText || '© 2024 Your Company. All Rights Reserved.';
+                applyLineBreaks('introduction-text', data[0].text);
+            }
+        }
+
+        function renderEvents(events) {
+            const container = document.getElementById('event-list');
+            container.innerHTML = '';
+            events.forEach((event, index) => {
+                event.posterImage = convertToDirectLink(event.posterImage);
+                const eventString = JSON.stringify(event).replace(/'/g, "\\'");
+                container.innerHTML += `
+                    <div class="bg-white p-6 rounded-lg shadow-lg flex items-start hover:shadow-xl transition-shadow duration-300 cursor-pointer" onclick='openEventModal(${eventString})'>
+                        <div class="bg-${event.color}-500 text-white rounded-lg p-3 text-center mr-4 flex-shrink-0">
+                            <span class="block text-2xl font-bold">${event.day}</span>
+                            <span class="block text-sm uppercase">${event.month}</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-900">${event.title}</h3>
+                            <p class="text-gray-600 mt-1">${event.shortDescription}</p>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function renderCompanies(companies) {
+            const container = document.getElementById('company-grid');
+            container.innerHTML = '';
+            companies.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+            companies.forEach((company, index) => {
+                company.logo = convertToDirectLink(company.logo);
+                const companyString = JSON.stringify(company).replace(/'/g, "\\'");
+                container.innerHTML += `
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 cursor-pointer" onclick='openCompanyModal(${companyString})'>
+                        <div class="p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="w-16 h-16 rounded-full mr-4 bg-white border flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                    <img src="${company.logo}" alt="${company.name} 로고" class="max-w-[80%] max-h-[80%] object-contain" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://placehold.co/100x100?text=No+Image';">
+                                </div>
+                                <h2 class="text-xl font-bold text-gray-900">${company.name}</h2>
+                            </div>
+                            <p class="text-gray-700 h-16">${company.description}</p>
+                        </div>
+                    </div>`;
+            });
+        }
+        
+        function applyLineBreaks(elementId, text) {
+            const element = document.getElementById(elementId);
+            if(element) element.textContent = (text || '').replace(/\\n/g, '\n');
+        }
+
+        function convertYoutubeUrlToEmbed(url) {
+            if (!url) return null;
+            let videoId = '';
+            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const match = url.match(youtubeRegex);
+            if (match) {
+                videoId = match[1];
+            }
+            return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : null;
+        }
+
+        function openCompanyModal(company) {
+            if (!company) return;
+            const logoImg = document.getElementById('modal-logo');
+            logoImg.src = company.logo; 
+            logoImg.onerror = function() { this.src = getFallbackImage(100, 100); };
+            
+            document.getElementById('modal-name').textContent = company.name;
+            document.getElementById('modal-description').textContent = company.description;
+            document.getElementById('modal-ceo').textContent = company.ceo;
+            document.getElementById('modal-email').textContent = company.email;
+            document.getElementById('modal-main-game').textContent = company.mainGame;
+            document.getElementById('modal-genre').textContent = company.genre;
+            document.getElementById('modal-platform').textContent = company.platform;
+            
+            applyLineBreaks('modal-detailed-description', company.detailedDescription);
+            applyLineBreaks('modal-game-description', company.gameDescription);
+            
+            const youtubeSection = document.getElementById('youtube-section');
+            const youtubeIframe = document.getElementById('youtube-iframe');
+            const embedUrl = convertYoutubeUrlToEmbed(company.youtubeURL);
+
+            if (embedUrl) {
+                youtubeIframe.src = embedUrl;
+                youtubeSection.style.display = 'block';
+            } else {
+                youtubeIframe.src = '';
+                youtubeSection.style.display = 'none';
+            }
+            
+            const gameImageSection = document.getElementById('game-image-section');
+            const gameImagesContainer = document.getElementById('modal-game-images');
+            gameImagesContainer.innerHTML = ''; 
+            if (company.gameImages && company.gameImages.length > 0 && company.gameImages[0]) {
+                gameImageSection.style.display = 'block';
+                company.gameImages.forEach(imageUrl => {
+                    // [수정 완료] 고정 박스(h-80) 제거하고, 이미지가 스스로 크기를 결정하되 최대 높이만 제한
+                    // mx-auto로 세로 이미지 중앙 정렬, rounded-lg/shadow-md를 이미지에 직접 적용
+                    gameImagesContainer.innerHTML += `
+                    <div class="flex justify-center items-center">
+                        <img src="${imageUrl}" alt="${company.mainGame} 게임 이미지" class="rounded-lg shadow-md max-w-full max-h-80 object-contain mx-auto" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://placehold.co/600x400?text=No+Image';">
+                    </div>`;
+                });
+            } else {
+                gameImageSection.style.display = 'none';
+            }
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+        
+        function closeCompanyModal() {
+            document.getElementById('modal-backdrop').classList.add('hidden');
+            document.getElementById('youtube-iframe').src = '';
+        }
+
+        function openEventModal(event) {
+            if (!event) return;
+            const posterImg = document.getElementById('event-modal-poster');
+            posterImg.src = event.posterImage; 
+            posterImg.onerror = function() { this.src = getFallbackImage(600, 400); };
+
+            document.getElementById('event-modal-title').textContent = event.title;
+            applyLineBreaks('event-modal-description', event.detailedDescription);
+            document.getElementById('event-modal-backdrop').classList.remove('hidden');
+        }
+        function closeEventModal() { document.getElementById('event-modal-backdrop').classList.add('hidden'); }
+    </script>
+</body>
+</html>
