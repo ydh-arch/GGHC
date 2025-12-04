@@ -330,12 +330,16 @@
             } else {
                 gameImageSection.style.display = 'none';
             }
+            // 스크롤 방지 추가
+            document.body.style.overflow = 'hidden';
             document.getElementById('modal-backdrop').classList.remove('hidden');
         }
         
         function closeCompanyModal() {
             document.getElementById('modal-backdrop').classList.add('hidden');
             document.getElementById('youtube-iframe').src = '';
+            // 스크롤 방지 해제
+            document.body.style.overflow = '';
         }
 
         function openEventModal(event) {
@@ -346,9 +350,15 @@
 
             document.getElementById('event-modal-title').textContent = event.title;
             applyLineBreaks('event-modal-description', event.detailedDescription);
+            // 스크롤 방지 추가
+            document.body.style.overflow = 'hidden';
             document.getElementById('event-modal-backdrop').classList.remove('hidden');
         }
-        function closeEventModal() { document.getElementById('event-modal-backdrop').classList.add('hidden'); }
+        function closeEventModal() { 
+            document.getElementById('event-modal-backdrop').classList.add('hidden'); 
+            // 스크롤 방지 해제
+            document.body.style.overflow = '';
+        }
     </script>
 </body>
 </html>
