@@ -107,7 +107,7 @@
         <div id="event-modal-content" class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" onclick="event.stopPropagation()">
             <button id="event-modal-close-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
             <div class="p-6 md:p-8">
-                <!-- [수정] 이미지를 a 태그로 감싸서 링크 기능 추가 -->
+                <!-- 포스터 이미지 링크 -->
                 <a id="event-modal-poster-link" href="#" target="_blank" class="block transition-transform hover:opacity-95">
                     <img id="event-modal-poster" src="" alt="행사 포스터" class="w-full h-auto rounded-lg shadow-md mb-6" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://placehold.co/600x400?text=No+Image';">
                 </a>
@@ -141,23 +141,38 @@
             return `https://placehold.co/${width}x${height}?text=No+Image`;
         }
 
-        // 텍스트 파싱 (마크다운 링크 + 일반 URL + 줄바꿈)
+        // [수정됨] 텍스트 파싱: 링크 끝에 붙은 특수문자 제거 기능 강화
         function parseTextToHtml(text) {
             if (!text) return '';
+            
             let content = text.replace(/\\n/g, '\n');
+            content = content.replace(/\n/g, '<br>');
 
-            // 1. 마크다운 스타일 링크 변환
+            // 1. 마크다운 스타일 링크 ([텍스트](주소))
             content = content.replace(
                 /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,
                 '<a href="$2" target="_blank" class="text-blue-600 hover:underline relative z-10" onclick="event.stopPropagation();">$1</a>'
             );
 
-            // 2. 일반 URL 자동 변환
+            // 2. 일반 URL 자동 변환 (끝에 붙은 괄호, 점, 콤마 등 자동 제거)
             content = content.replace(
                 /(href="https?:\/\/[^"]+")|(https?:\/\/[^\s<]+)/g, 
                 function(match, existingLink, plainUrl) {
-                    if (existingLink) return existingLink; 
-                    return '<a href="' + plainUrl + '" target="_blank" class="text-blue-600 hover:underline relative z-10" onclick="event.stopPropagation();">' + plainUrl + '</a>';
+                    if (existingLink) return existingLink; // 이미 a태그인 경우 패스
+                    
+                    // URL 끝에 붙은 문장부호들 제거 (예: (주소), 주소. 주소, 등)
+                    let url = plainUrl;
+                    let trailing = '';
+                    
+                    // 반복해서 끝의 특수문자를 잘라냄 (URL에 포함되지 않는 문자들)
+                    while (/[.,;:)\]}'"]$/.test(url)) {
+                        trailing = url.slice(-1) + trailing;
+                        url = url.slice(0, -1);
+                    }
+                    
+                    if (!url) return match; // URL이 없으면 원본 반환
+
+                    return '<a href="' + url + '" target="_blank" class="text-blue-600 hover:underline relative z-10" onclick="event.stopPropagation();">' + url + '</a>' + trailing;
                 }
             );
 
@@ -165,32 +180,50 @@
         }
 
         function parseCSV(text) {
-            let lines = text.split(/\r\n|\n/);
-            let headers = lines.shift().split(',');
-            let result = [];
-            lines.forEach(line => {
-                if (!line) return;
-                let obj = {};
-                let current = '';
-                let inQuote = false;
-                let fieldIndex = 0;
-                for (let i = 0; i < line.length; i++) {
-                    let char = line[i];
-                    if (char === '"' && line[i+1] === '"') {
-                        current += '"'; i++;
-                    } else if (char === '"') {
-                        inQuote = !inQuote;
-                    } else if (char === ',' && !inQuote) {
-                        obj[headers[fieldIndex]] = current.trim();
-                        current = '';
-                        fieldIndex++;
-                    } else {
-                        current += char;
-                    }
+            const arr = [];
+            let quote = false;
+            let col = 0, row = 0;
+            
+            for (let c = 0; c < text.length; c++) {
+                let cc = text[c], nc = text[c+1];
+                arr[row] = arr[row] || [];
+                arr[row][col] = arr[row][col] || '';
+
+                if (cc === '"' && quote && nc === '"') { 
+                    arr[row][col] += cc; ++c; continue; 
                 }
-                obj[headers[fieldIndex]] = current.trim();
+                if (cc === '"') { 
+                    quote = !quote; continue; 
+                }
+                if (cc === ',' && !quote) { 
+                    ++col; continue; 
+                }
+                if (cc === '\r' && nc === '\n' && !quote) { 
+                    ++row; col = 0; ++c; continue; 
+                }
+                if (cc === '\n' && !quote) { 
+                    ++row; col = 0; continue; 
+                }
+                if (cc === '\r' && !quote) { 
+                    ++row; col = 0; continue; 
+                }
+
+                arr[row][col] += cc;
+            }
+
+            if (arr.length === 0) return [];
+            const headers = arr[0].map(h => h.trim());
+            const result = [];
+            for (let i = 1; i < arr.length; i++) {
+                const rowData = arr[i];
+                if (rowData.length < 1 || (rowData.length === 1 && rowData[0] === '')) continue; 
+                
+                const obj = {};
+                for (let j = 0; j < headers.length; j++) {
+                    obj[headers[j]] = rowData[j] ? rowData[j].trim() : '';
+                }
                 result.push(obj);
-            });
+            }
             return result;
         }
 
@@ -266,7 +299,7 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-lg text-gray-900">${event.title}</h3>
-                            <p class="text-gray-600 mt-1 preserve-lines">${parseTextToHtml(event.shortDescription)}</p>
+                            <div class="text-gray-600 mt-1 preserve-lines">${parseTextToHtml(event.shortDescription)}</div>
                         </div>
                     </div>`;
             });
@@ -369,7 +402,6 @@
             posterImg.src = event.posterImage; 
             posterImg.onerror = function() { this.src = getFallbackImage(600, 400); };
 
-            // [추가] posterLink가 있으면 a태그 활성화, 없으면 비활성화
             const posterLinkEl = document.getElementById('event-modal-poster-link');
             if (event.posterLink && event.posterLink.trim() !== '') {
                 posterLinkEl.href = event.posterLink.trim();
